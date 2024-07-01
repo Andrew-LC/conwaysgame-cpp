@@ -1,10 +1,14 @@
-#include "Conway.h"
 #include <SDL2/SDL_events.h>
+#include <SDL2/SDL_render.h>
+#include <SDL2/SDL_ttf.h>
+#include <string>
 #include <vector>
+#include "Conway.h"
+#include "Button.h"
 
 /*
 [[0, 0, 0, 0, 0]
- [0, 0, 1, 0, 0]  
+ [0, 0, 1, 0, 0]
  [0, 1, 1, 0, 0]
  [0, 0, 1, 1, 0]
  [0, 0, 0, 0, 0]]
@@ -12,21 +16,21 @@
  first alive cell: i = 1, j =  2
 
  -> First we can just update the i value with +1 and -1
-    to go up and down the row i.e grid[i+1][j] and grid[i-1][j] 
+
+    to go up and down the row i.e grid[i+1][j] and grid[i-1][j]
  -> Then do the same with j to go back and forth within col by one step
 
- -> To check the diagonal sides we use this update grid[i+1][j+1] and grid[i+1][j-1]
+ -> To check the diagonal sides we use this update grid[i+1][j+1] and
+grid[i+1][j-1]
 */
+
 
 #define CHECK(LIST, i, j) ((LIST)[(i)][(j)])
 
 Conway::Conway()
-  : isRunning(false), window(nullptr), renderer(nullptr), rows(0), cols{0} {
-}
+    : isRunning(false), window(nullptr), renderer(nullptr), rows(0), cols{0} {}
 
-Conway::~Conway() {
-  clean();
-}
+Conway::~Conway() { clean(); }
 
 void Conway::initializeGrid() {
   rows = 100;
@@ -41,30 +45,47 @@ void Conway::reset() {
 
 bool Conway::init(const char *title, int width, int height) {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-      std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError()
-                << '\n';
-      return false;
-    }
+    std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError()
+              << '\n';
 
-    window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED,
-                              SDL_WINDOWPOS_UNDEFINED, width,
-                              height, SDL_WINDOW_SHOWN);
-    if (window == nullptr) {
-      std::cerr << "Window could not be created! SDL_Error: " << SDL_GetError()
-                << '\n';
-      return false;
-    }
 
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    if (renderer == nullptr) {
-      std::cerr << "Renderer could not be created! SDL_Error: "
-                << SDL_GetError() << '\n';
-      return false;
-    }
+    return false;
+  }
 
-    initializeGrid();
-    isRunning = true;
-    return true;
+  window =
+      SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                       width, height, SDL_WINDOW_SHOWN);
+  if (window == nullptr) {
+    std::cerr << "Window could not be created! SDL_Error: " << SDL_GetError()
+              << '\n';
+    return false;
+  }
+
+  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  if (renderer == nullptr) {
+    std::cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError()
+              << '\n';
+    return false;
+  }
+
+  // Initialize SDL_ttf
+  if (TTF_Init() == -1) {
+    std::cerr << "SDL_ttf could not initialize! SDL_ttf Error: "
+              << TTF_GetError() << std::endl;
+  }
+
+  Font = TTF_OpenFont("./assets/CascadiaCode-Regular.ttf", fontSize);
+  if (Font == nullptr) {
+    std::cerr << "Font could not be loaded! SDL_Error: " << SDL_GetError()
+              << '\n';
+    return false;
+  }
+
+  text = new Button(100, 100, "Click Me", Font, renderer);
+
+  initializeGrid();
+  isRunning = true;
+  return true;
 }
 
 void Conway::run() {
@@ -76,7 +97,7 @@ void Conway::run() {
     handleEvents();
     render();
 
-    if(runSimulation){
+    if (runSimulation) {
       rules();
     }
   }
@@ -89,21 +110,21 @@ void Conway::handleEvents() {
       isRunning = false;
     }
     // Handle other events here (keyboard, mouse, etc.)
-    if(e.type == SDL_MOUSEBUTTONDOWN) {
+    if (e.type == SDL_MOUSEBUTTONDOWN) {
       int x = e.button.x;
       int y = e.button.y;
       updateGrid(x, y);
     }
 
-    if(e.type == SDL_KEYDOWN){
+    if (e.type == SDL_KEYDOWN) {
       switch (e.key.keysym.sym) {
       case SDLK_RETURN:
-	std::cout << "Running simulation\n";
-	runSimulation = true;
-	break;
+        std::cout << "Running simulation\n";
+        runSimulation = true;
+        break;
       case SDLK_ESCAPE:
-	reset();
-	break;
+        reset();
+        break;
       }
     }
   }
@@ -122,15 +143,32 @@ void Conway::render() {
   SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
   SDL_RenderClear(renderer);
 
-  // Render stuff here
+  text->render();
+
+  // // Render stuff here
   SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j) {
       if (grid[i][j]) {
-	SDL_Rect cellRect = {j * cellSize, i * cellSize, cellSize, cellSize};
-	SDL_RenderFillRect(renderer, &cellRect);
+        SDL_Rect cellRect = {j * cellSize, i * cellSize, cellSize, cellSize};
+        SDL_RenderFillRect(renderer, &cellRect);
       }
     }
+  }
+
+  // Set the draw color to grey for grid lines
+  SDL_SetRenderDrawColor(renderer, 0x80, 0x80, 0x80, 0xFF);
+
+  // Draw vertical grid lines
+  for (int j = 0; j <= cols; ++j) {
+    int x = j * cellSize;
+    SDL_RenderDrawLine(renderer, x, 0, x, rows * cellSize);
+  }
+
+  // Draw horizontal grid lines
+  for (int i = 0; i <= rows; ++i) {
+    int y = i * cellSize;
+    SDL_RenderDrawLine(renderer, 0, y, cols * cellSize, y);
   }
 
   SDL_RenderPresent(renderer);

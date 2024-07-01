@@ -2,6 +2,10 @@
 #define GAME_H
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_surface.h>
+#include <SDL2/SDL_ttf.h>
+#include "Button.h"
+
 #include <iostream>
 #include <vector>
 
@@ -36,6 +40,9 @@ private:
   SDL_Window *window;
   SDL_Renderer *renderer;
   SDL_Texture* playerTex;
+  int fontSize{18};
+  TTF_Font* Font;
+  Button* text;
 };
 
 #endif
