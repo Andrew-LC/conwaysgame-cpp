@@ -1,11 +1,12 @@
 #include "Game.h"
+#include "Conway.h"
+#include "GameUI.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
-#include "GameUI.h"
+#include <string>
 #include <iostream>
 
-Game::Game(int width, int height)
-  : width(width), height(height) {}
+Game::Game(int width, int height) : width(width), height(height) {}
 
 void Game::init() {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -13,9 +14,9 @@ void Game::init() {
               << '\n';
   }
 
-  window =
-      SDL_CreateWindow("Conway Game", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                       width, height, SDL_WINDOW_SHOWN);
+  window = SDL_CreateWindow("Conway Game", SDL_WINDOWPOS_UNDEFINED,
+                            SDL_WINDOWPOS_UNDEFINED, width, height,
+                            SDL_WINDOW_SHOWN);
   if (window == nullptr) {
     std::cerr << "Window could not be created! SDL_Error: " << SDL_GetError()
               << '\n';
@@ -39,6 +40,10 @@ void Game::init() {
               << '\n';
   }
 
+  // Initialize the ui
+  ui = new GameUI(renderer, font);
+  conway = new Conway(800, 800, renderer);
+  conway->init();
   isRunning = true;
 }
 
@@ -53,6 +58,7 @@ void Game::run() {
   while (isRunning) {
     handleEvents();
     render();
+    conway->run();
   }
   close();
 }
@@ -63,6 +69,7 @@ void Game::handleEvents() {
     if (e.type == SDL_QUIT) {
       isRunning = false;
     }
+    conway->handleEvents(e);
   }
 }
 
@@ -70,8 +77,8 @@ void Game::render() {
   SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
   SDL_RenderClear(renderer);
 
+  ui->render();
+  conway->render();
+
   SDL_RenderPresent(renderer);
 }
-
-
-

@@ -1,4 +1,4 @@
-#ifndef BUTTON_H 
+#ifndef BUTTON_H
 #define BUTTON_H
 
 #include <SDL2/SDL.h>
@@ -21,7 +21,9 @@ private:
     std::string text;
     SDL_Texture* tex;
     SDL_Color textColor{255, 255, 255};
+    SDL_Color outlineColor{255, 255, 255};
     SDL_Rect rect;
+    SDL_Rect outlineRect;
 };
 
 #endif // BUTTON_H

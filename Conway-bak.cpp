@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "Conway.h"
+#include "Button.h"
 
 /*
 [[0, 0, 0, 0, 0]
@@ -26,20 +27,15 @@ grid[i+1][j-1]
 
 #define CHECK(LIST, i, j) ((LIST)[(i)][(j)])
 
-Conway::Conway(int width, int height, SDL_Renderer *renderer)
-    : isRunning(false), window(nullptr), renderer(renderer), width(width),
-      height(height) {
-  rows = height;
-  cols = width;
-}
+Conway::Conway()
+    : isRunning(false), window(nullptr), renderer(nullptr), rows(0), cols{0} {}
+
+Conway::~Conway() { clean(); }
 
 void Conway::initializeGrid() {
-  try {
-    grid = Grid(rows, std::vector<bool>(cols, false));
-  } catch (const std::bad_alloc &e) {
-    std::cerr << "Error: Failed to allocate memory for grid" << std::endl;
-    throw;
-  }
+  rows = 100;
+  cols = 100;
+  grid = Grid(rows, std::vector<bool>(cols, false));
 }
 
 void Conway::reset() {
@@ -47,14 +43,72 @@ void Conway::reset() {
   runSimulation = false;
 }
 
-void Conway::init() {
+bool Conway::init(const char *title, int width, int height) {
+  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError()
+              << '\n';
+
+
+    return false;
+  }
+
+  window =
+      SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                       width, height, SDL_WINDOW_SHOWN);
+  if (window == nullptr) {
+    std::cerr << "Window could not be created! SDL_Error: " << SDL_GetError()
+              << '\n';
+    return false;
+  }
+
+  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  if (renderer == nullptr) {
+    std::cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError()
+              << '\n';
+    return false;
+  }
+
+  // Initialize SDL_ttf
+  if (TTF_Init() == -1) {
+    std::cerr << "SDL_ttf could not initialize! SDL_ttf Error: "
+              << TTF_GetError() << std::endl;
+  }
+
+  Font = TTF_OpenFont("./assets/CascadiaCode-Regular.ttf", fontSize);
+  if (Font == nullptr) {
+    std::cerr << "Font could not be loaded! SDL_Error: " << SDL_GetError()
+              << '\n';
+    return false;
+  }
+
+  text = new Button(100, 100, "Click Me", Font, renderer);
+
   initializeGrid();
-  std::cout << "Grid: " << cols << " " << rows << std::endl;
   isRunning = true;
+  return true;
 }
 
+void Conway::run() {
+  if (!init("Conway Game", 800, 600)) {
+    std::cerr << "Failed to initialize!\n";
+    return;
+  }
+  while (isRunning) {
+    handleEvents();
+    render();
 
-void Conway::handleEvents(SDL_Event& e) {
+    if (runSimulation) {
+      rules();
+    }
+  }
+}
+
+void Conway::handleEvents() {
+  SDL_Event e;
+  while (SDL_PollEvent(&e) != 0) {
+    if (e.type == SDL_QUIT) {
+      isRunning = false;
+    }
     // Handle other events here (keyboard, mouse, etc.)
     if (e.type == SDL_MOUSEBUTTONDOWN) {
       int x = e.button.x;
@@ -73,13 +127,12 @@ void Conway::handleEvents(SDL_Event& e) {
         break;
       }
     }
+  }
 }
 
 void Conway::updateGrid(int x, int y) {
   int col = x / cellSize;
   int row = y / cellSize;
-
-  std::cout << col << " " << row << std::endl;
 
   std::cout << grid[row][col];
   grid[row][col] = !grid[row][col];
@@ -87,6 +140,11 @@ void Conway::updateGrid(int x, int y) {
 }
 
 void Conway::render() {
+  SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
+  SDL_RenderClear(renderer);
+
+  text->render();
+
   // // Render stuff here
   SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
   for (int i = 0; i < rows; ++i) {
@@ -97,12 +155,23 @@ void Conway::render() {
       }
     }
   }
-}
 
-void Conway::run() {
-  if(runSimulation){
-    rules();
+  // Set the draw color to grey for grid lines
+  SDL_SetRenderDrawColor(renderer, 0x80, 0x80, 0x80, 0xFF);
+
+  // Draw vertical grid lines
+  for (int j = 0; j <= cols; ++j) {
+    int x = j * cellSize;
+    SDL_RenderDrawLine(renderer, x, 0, x, rows * cellSize);
   }
+
+  // Draw horizontal grid lines
+  for (int i = 0; i <= rows; ++i) {
+    int y = i * cellSize;
+    SDL_RenderDrawLine(renderer, 0, y, cols * cellSize, y);
+  }
+
+  SDL_RenderPresent(renderer);
 }
 
 void Conway::rules() {
@@ -156,4 +225,18 @@ void Conway::rules() {
 
   // Update the grid with the next generation
   grid = nextGrid;
+}
+
+void Conway::clean() {
+  if (renderer) {
+    SDL_DestroyRenderer(renderer);
+    renderer = nullptr;
+  }
+
+  if (window) {
+    SDL_DestroyWindow(window);
+    window = nullptr;
+  }
+
+  SDL_Quit();
 }

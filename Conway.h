@@ -1,10 +1,10 @@
-#ifndef GAME_H
-#define GAME_H
+#ifndef CONWAY_H
+#define CONWAY_H
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_surface.h>
 #include <SDL2/SDL_ttf.h>
-#include "Button.h"
+#include "GameUI.h"
 
 #include <iostream>
 #include <vector>
@@ -15,34 +15,31 @@ using Grid = std::vector<std::vector<bool>>;
 
 class Conway {
 public:
-  Conway();
+  Conway(int width, int height, SDL_Renderer* renderer);
   ~Conway();
 
-  bool init(const char *title, int width, int height);
-  void handleEvents();
-  void update();
-  void render();
-  void clean();
+  void init();
   void run();
-  void initializeGrid();
-  void updateGrid(int x, int y);
-  void rules();
+  void handleEvents(SDL_Event& e);
+  void render();
   void reset();
   bool running() { return isRunning; }
 
 private:
+  void initializeGrid();
+  void updateGrid(int x, int y);
+  void rules();
+
   int rows;
   int cols;
+  int width;
+  int height;
   int cellSize{20};
   Grid grid;
   bool isRunning;
   bool runSimulation{false};
   SDL_Window *window;
   SDL_Renderer *renderer;
-  SDL_Texture* playerTex;
-  int fontSize{18};
-  TTF_Font* Font;
-  Button* text;
 };
 
-#endif
+#endif // CONWAY_H 

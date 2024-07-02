@@ -11,15 +11,15 @@ using std::vector;
 class GameUI {
 public:
   GameUI(SDL_Renderer *renderer, TTF_Font *font);
-  void addButton(std::string text);
+  void addButton(int posx, int posy, std::string text);
   void render();
-  void handleEvents(SDL_Event &event);
-  // Add methods for UI controls
+  void conwayGrid(int width, int height, int cellSize);
+  void controlUI();
+  void handleEvents(SDL_Event& e);
 
 private:
   SDL_Renderer *renderer;
   TTF_Font *font;
-  // Add UI elements (buttons, sliders, etc.)
   vector<Button *> buttons;
 };
 

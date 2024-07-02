@@ -21,6 +21,9 @@ Button::Button(int posx, int posy, std::string text, TTF_Font* font, SDL_Rendere
     height = textSurface->h;
     rect = { posx, posy, width, height };
 
+    // Set outlineRect slightly larger than text rect
+    outlineRect = { posx - 10, posy - 10, width + 20, height + 20 };
+
     SDL_FreeSurface(textSurface);
 }
 
@@ -31,5 +34,10 @@ Button::~Button() {
 }
 
 void Button::render() {
+    // Draw the outline rectangle
+    SDL_SetRenderDrawColor(renderer, outlineColor.r, outlineColor.g, outlineColor.b, 255);
+    SDL_RenderDrawRect(renderer, &outlineRect);
+
+    // Render the text
     SDL_RenderCopy(renderer, tex, nullptr, &rect);
 }
