@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "Conway.h"
+#include "SDLContext.h"
 
 /*
 [[0, 0, 0, 0, 0]
@@ -26,9 +27,8 @@ grid[i+1][j-1]
 
 #define CHECK(LIST, i, j) ((LIST)[(i)][(j)])
 
-Conway::Conway(int width, int height, SDL_Renderer *renderer)
-    : isRunning(false), window(nullptr), renderer(renderer), width(width),
-      height(height) {
+Conway::Conway(SDLContext *context, int width, int height)
+  : context(context), isRunning(false), width(width), height(height) {
   rows = height;
   cols = width;
 }
@@ -59,7 +59,8 @@ void Conway::handleEvents(SDL_Event& e) {
     if (e.type == SDL_MOUSEBUTTONDOWN) {
       int x = e.button.x;
       int y = e.button.y;
-      updateGrid(x, y);
+      if(y < 500)
+	updateGrid(x, y);
     }
 
     if (e.type == SDL_KEYDOWN) {
@@ -88,12 +89,12 @@ void Conway::updateGrid(int x, int y) {
 
 void Conway::render() {
   // // Render stuff here
-  SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+  SDL_SetRenderDrawColor(context->getRenderer(), 0xFF, 0xFF, 0xFF, 0xFF);
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j) {
       if (grid[i][j]) {
         SDL_Rect cellRect = {j * cellSize, i * cellSize, cellSize, cellSize};
-        SDL_RenderFillRect(renderer, &cellRect);
+        SDL_RenderFillRect(context->getRenderer(), &cellRect);
       }
     }
   }

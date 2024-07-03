@@ -5,6 +5,7 @@
 #include <SDL2/SDL_surface.h>
 #include <SDL2/SDL_ttf.h>
 #include "GameUI.h"
+#include "SDLContext.h"
 
 #include <iostream>
 #include <vector>
@@ -15,7 +16,7 @@ using Grid = std::vector<std::vector<bool>>;
 
 class Conway {
 public:
-  Conway(int width, int height, SDL_Renderer* renderer);
+  Conway(SDLContext* context, int width, int height);
   ~Conway();
 
   void init();
@@ -38,8 +39,7 @@ private:
   Grid grid;
   bool isRunning;
   bool runSimulation{false};
-  SDL_Window *window;
-  SDL_Renderer *renderer;
+  SDLContext* context;
 };
 
 #endif // CONWAY_H 

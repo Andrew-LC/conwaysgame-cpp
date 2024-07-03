@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "Conway.h"
+#include "SDLContext.h"
 #include "GameUI.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
@@ -22,33 +23,14 @@ void Game::init() {
               << '\n';
   }
 
-  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-  if (renderer == nullptr) {
-    std::cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError()
-              << '\n';
-  }
-
-  // Initialize SDL_ttf
-  if (TTF_Init() == -1) {
-    std::cerr << "SDL_ttf could not initialize! SDL_ttf Error: "
-              << TTF_GetError() << std::endl;
-  }
-
-  font = TTF_OpenFont("./assets/CascadiaCode-Regular.ttf", 18);
-  if (font == nullptr) {
-    std::cerr << "Font could not be loaded! SDL_Error: " << SDL_GetError()
-              << '\n';
-  }
-
-  // Initialize the ui
-  ui = new GameUI(renderer, font);
-  conway = new Conway(800, 800, renderer);
+  context = new SDLContext(window);
+  ui = new GameUI(context);
+  conway = new Conway(context, 800, 800);
   conway->init();
   isRunning = true;
 }
 
 void Game::close() {
-  SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
   SDL_Quit();
 }
@@ -70,10 +52,12 @@ void Game::handleEvents() {
       isRunning = false;
     }
     conway->handleEvents(e);
+    ui->handleEvents(e);
   }
 }
 
 void Game::render() {
+  SDL_Renderer* renderer = context->getRenderer();
   SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
   SDL_RenderClear(renderer);
 

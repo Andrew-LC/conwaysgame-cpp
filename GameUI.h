@@ -4,23 +4,23 @@
 #include "Button.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
-#include <vector>
-
-using std::vector;
+#include "SDLContext.h"
+#include <map>
+#include <string>
 
 class GameUI {
 public:
-  GameUI(SDL_Renderer *renderer, TTF_Font *font);
+  GameUI(SDLContext* context);
   void addButton(int posx, int posy, std::string text);
   void render();
   void conwayGrid(int width, int height, int cellSize);
   void controlUI();
   void handleEvents(SDL_Event& e);
+  Button* getButton(std::string text);
 
 private:
-  SDL_Renderer *renderer;
-  TTF_Font *font;
-  vector<Button *> buttons;
+  std::map<std::string, Button*> buttons;
+  SDLContext* context;
 };
 
 #endif // GAME_UI

@@ -3,8 +3,10 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include "SDLContext.h"
 #include "GameUI.h"
 #include "Conway.h"
+
 
 class Game {
 public:
@@ -22,8 +24,7 @@ private:
   int width{0};
   int height{0};
   SDL_Window *window;
-  SDL_Renderer *renderer;
-  TTF_Font *font;
+  SDLContext* context;
   Conway* conway;
   GameUI* ui;
 };
