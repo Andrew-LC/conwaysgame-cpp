@@ -2,26 +2,21 @@
 #include "Conway.h"
 #include "SDLContext.h"
 #include "GameUI.h"
+#include "utils.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <string>
 #include <iostream>
 
+
 Game::Game(int width, int height) : width(width), height(height) {}
 
 void Game::init() {
-  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-    std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError()
-              << '\n';
-  }
+  catchError(SDL_Init(SDL_INIT_VIDEO), "Error: Could not initialize sdl init");
 
-  window = SDL_CreateWindow("Conway Game", SDL_WINDOWPOS_UNDEFINED,
-                            SDL_WINDOWPOS_UNDEFINED, width, height,
-                            SDL_WINDOW_SHOWN);
-  if (window == nullptr) {
-    std::cerr << "Window could not be created! SDL_Error: " << SDL_GetError()
-              << '\n';
-  }
+  window = catchErrorNULL(SDL_CreateWindow(
+      "Conway Game", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width,
+      height, SDL_WINDOW_SHOWN), "Error: could not initialize window");
 
   context = new SDLContext(window);
   ui = new GameUI(context);

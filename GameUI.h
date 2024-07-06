@@ -21,6 +21,9 @@ public:
 private:
   std::map<std::string, Button*> buttons;
   SDLContext* context;
+  int cameraX{0};
+  int cameraY{0};
+  float zoom{1.0f};
 };
 
 #endif // GAME_UI

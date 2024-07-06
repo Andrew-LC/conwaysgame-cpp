@@ -1,124 +1,105 @@
+#include "Conway.h"
+#include "SDLContext.h"
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_ttf.h>
+#include <iostream>
 #include <string>
 #include <vector>
-#include "Conway.h"
-#include "SDLContext.h"
-
-/*
-[[0, 0, 0, 0, 0]
- [0, 0, 1, 0, 0]
- [0, 1, 1, 0, 0]
- [0, 0, 1, 1, 0]
- [0, 0, 0, 0, 0]]
-
- first alive cell: i = 1, j =  2
-
- -> First we can just update the i value with +1 and -1
-
-    to go up and down the row i.e grid[i+1][j] and grid[i-1][j]
- -> Then do the same with j to go back and forth within col by one step
-
- -> To check the diagonal sides we use this update grid[i+1][j+1] and
-grid[i+1][j-1]
-*/
-
 
 #define CHECK(LIST, i, j) ((LIST)[(i)][(j)])
 
 Conway::Conway(SDLContext *context, int width, int height)
-  : context(context), isRunning(false), width(width), height(height) {
-  rows = height;
-  cols = width;
-}
+    : context(context), isRunning(false), runSimulation(false),
+      width(width), height(height), rows(height / context->getCellSize()),
+      cols(width / context->getCellSize()) {}
 
-void Conway::initializeGrid() {
-  try {
-    grid = Grid(rows, std::vector<bool>(cols, false));
-  } catch (const std::bad_alloc &e) {
-    std::cerr << "Error: Failed to allocate memory for grid" << std::endl;
-    throw;
-  }
+void Conway::initializeGrid() { 
+    context->createGrid(rows, cols);
 }
 
 void Conway::reset() {
-  grid = Grid(rows, std::vector<bool>(cols, false));
-  runSimulation = false;
+    context->createGrid(rows, cols);
+    runSimulation = false;
 }
 
 void Conway::init() {
-  initializeGrid();
-  std::cout << "Grid: " << cols << " " << rows << std::endl;
-  isRunning = true;
+    initializeGrid();
+    isRunning = true;
 }
 
-
-void Conway::handleEvents(SDL_Event& e) {
-    // Handle other events here (keyboard, mouse, etc.)
+void Conway::handleEvents(SDL_Event &e) {
     if (e.type == SDL_MOUSEBUTTONDOWN) {
-      int x = e.button.x;
-      int y = e.button.y;
-      if(y < 500)
-	updateGrid(x, y);
+        int x = e.button.x;
+        int y = e.button.y;
+        if (y < height) {
+            updateGrid(x, y);
+        }
     }
-
     if (e.type == SDL_KEYDOWN) {
-      switch (e.key.keysym.sym) {
-      case SDLK_RETURN:
-        std::cout << "Running simulation\n";
-        runSimulation = true;
-        break;
-      case SDLK_ESCAPE:
-        reset();
-        break;
-      }
+        switch (e.key.keysym.sym) {
+        case SDLK_RETURN:
+            std::cout << "Running simulation\n";
+            runSimulation = true;
+            break;
+        case SDLK_ESCAPE:
+            reset();
+            break;
+        }
     }
 }
 
 void Conway::updateGrid(int x, int y) {
-  int col = x / cellSize;
-  int row = y / cellSize;
-
-  std::cout << col << " " << row << std::endl;
-
-  std::cout << grid[row][col];
-  grid[row][col] = !grid[row][col];
-  std::cout << grid[row][col];
+    int cellSize = context->getCellSize();
+    int col = x / cellSize;
+    int row = y / cellSize;
+    
+    // Apply camera offset
+    SDL_Rect cameraRect = context->getCameraRect();
+    col += cameraRect.x / cellSize;
+    row += cameraRect.y / cellSize;
+    
+    if (row < rows && col < cols) {
+        auto &grid = context->getGrid();
+        grid[row][col] = !grid[row][col];
+        std::cout << "Cell (" << col << ", " << row << ") toggled to "
+                  << (grid[row][col] ? "alive" : "dead") << std::endl;
+    } else {
+        std::cout << "Click outside grid bounds: (" << col << ", " << row << ")" << std::endl;
+    }
 }
 
 void Conway::render() {
-  // // Render stuff here
-  SDL_SetRenderDrawColor(context->getRenderer(), 0xFF, 0xFF, 0xFF, 0xFF);
-  for (int i = 0; i < rows; ++i) {
-    for (int j = 0; j < cols; ++j) {
-      if (grid[i][j]) {
-        SDL_Rect cellRect = {j * cellSize, i * cellSize, cellSize, cellSize};
-        SDL_RenderFillRect(context->getRenderer(), &cellRect);
-      }
+    const auto &grid = context->getGrid();
+    int cellSize = context->getCellSize();
+    SDL_SetRenderTarget(context->getRenderer(), context->getGridTexture());
+    SDL_SetRenderDrawColor(context->getRenderer(), 0, 0, 0, 255);
+    SDL_RenderClear(context->getRenderer());
+    SDL_SetRenderDrawColor(context->getRenderer(), 255, 255, 255, 255);
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            if (grid[i][j]) {
+                SDL_Rect cellRect = {j * cellSize, i * cellSize, cellSize, cellSize};
+                SDL_RenderFillRect(context->getRenderer(), &cellRect);
+            }
+        }
     }
-  }
+    SDL_SetRenderTarget(context->getRenderer(), nullptr);
+    SDL_RenderCopy(context->getRenderer(), context->getGridTexture(), 
+                   &context->getCameraRect(), &context->getDestRect());
+    context->drawGrid();
 }
 
 void Conway::run() {
-  if(runSimulation){
-    rules();
-  }
+    if (runSimulation || context->checkRunning()) {
+        rules();
+    }
 }
 
 void Conway::rules() {
-  /*
-    Rule 1: Any live cell with fewer than two live neighbours dies, as if by
-    underpopulation.
-    Rule 2: Any live cell with two or three live neighbours
-    lives on to the next generation.
-    Rule 3: Any live cell with more than three
-    live neighbours dies, as if by overpopulation.
-    Rule 4: Any dead cell with
-    exactly three live neighbours becomes a live cell, as if by reproduction.
-  */
-  Grid nextGrid = grid;
-
+    auto &grid = context->getGrid();
+    std::vector<std::vector<bool>> nextGrid = grid;
+    
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols;
          ++j) { // Assuming you have a 'cols' member variable

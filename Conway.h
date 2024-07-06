@@ -10,8 +10,6 @@
 #include <iostream>
 #include <vector>
 
-using Grid = std::vector<std::vector<bool>>;
-
 #define CHECK(LIST, i, j) ((LIST)[(i)][(j)])
 
 class Conway {
@@ -35,8 +33,6 @@ private:
   int cols;
   int width;
   int height;
-  int cellSize{20};
-  Grid grid;
   bool isRunning;
   bool runSimulation{false};
   SDLContext* context;

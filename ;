@@ -1,0 +1,114 @@
+#include "Conway.h"
+#include "SDLContext.h"
+#include <SDL2/SDL_events.h>
+#include <SDL2/SDL_render.h>
+#include <SDL2/SDL_ttf.h>
+#include <iostream>
+#include <string>
+#include <vector>
+
+#define CHECK(LIST, i, j) ((LIST)[(i)][(j)])
+
+Conway::Conway(SDLContext *context, int width, int height)
+    : context(context), isRunning(false), width(width), height(height),
+      rows(height), cols(width), runSimulation(false) {}
+
+void Conway::initializeGrid() { context->createGrid(rows, cols); }
+
+void Conway::reset() {
+  context->createGrid(rows, cols);
+  runSimulation = false;
+}
+
+void Conway::init() {
+  initializeGrid();
+  isRunning = true;
+}
+
+void Conway::handleEvents(SDL_Event &e) {
+  if (e.type == SDL_MOUSEBUTTONDOWN) {
+    int x = e.button.x;
+    int y = e.button.y;
+    if (y < 500) {
+      updateGrid(x, y);
+    }
+  }
+  if (e.type == SDL_KEYDOWN) {
+    switch (e.key.keysym.sym) {
+    case SDLK_RETURN:
+      std::cout << "Running simulation\n";
+      runSimulation = true;
+      break;
+    case SDLK_ESCAPE:
+      reset();
+      break;
+    }
+  }
+}
+
+void Conway::updateGrid(int x, int y) {
+  auto cellSize = context->getCellSize();
+  int col = x / cellSize;
+  int row = y / cellSize;
+  if (row < rows && col < cols) {
+    auto &grid = context->getGrid();
+    grid[row][col] = !grid[row][col];
+    std::cout << "Cell (" << col << ", " << row << ") toggled to "
+              << grid[row][col] << std::endl;
+  }
+}
+
+void Conway::render() {
+  const auto &grid = context->getGrid();
+  auto cellSize = context->getCellSize();
+  SDL_SetRenderTarget(context->getRenderer(), context->getGridTexture());
+  SDL_SetRenderDrawColor(context->getRenderer(), 0xFF, 0xFF, 0xFF, 0xFF);
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      if (grid[i][j]) {
+        SDL_Rect cellRect = {j * cellSize, i * cellSize, cellSize, cellSize};
+        SDL_RenderFillRect(context->getRenderer(), &cellRect);
+      }
+    }
+  }
+}
+
+void Conway::run() {
+  if (runSimulation || context->checkRunning()) {
+    rules();
+  }
+}
+
+void Conway::rules() {
+  auto &grid = context->getGrid();
+  std::vector<std::vector<bool>> nextGrid =
+      grid; // Create a copy for the next generation
+
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      int aliveCount = 0;
+      for (int x = -1; x <= 1; ++x) {
+        for (int y = -1; y <= 1; ++y) {
+          if (x == 0 && y == 0)
+            continue;
+          int ni = i + x;
+          int nj = j + y;
+          if (ni >= 0 && ni < rows && nj >= 0 && nj < cols &&
+              CHECK(grid, ni, nj)) {
+            aliveCount++;
+          }
+        }
+      }
+
+      if (CHECK(grid, i, j)) {
+        // Live cell
+        nextGrid[i][j] = (aliveCount == 2 || aliveCount == 3);
+      } else {
+        // Dead cell
+        nextGrid[i][j] = (aliveCount == 3);
+      }
+    }
+  }
+
+  grid = nextGrid; // Update the grid with the next generation
+}

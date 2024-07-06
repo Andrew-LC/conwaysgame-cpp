@@ -24,7 +24,7 @@ include_directories(${SDL2TTF_INCLUDE_DIRS})
 
 
 # Add executable
-add_executable(conway main.cpp Game.cpp SDLContext.cpp GameUI.cpp Button.cpp Conway.cpp)
+add_executable(conway main.cpp Game.cpp SDLContext.cpp GameUI.cpp Button.cpp Conway.cpp utils.cpp)
 
 # Link SDL2 and SDL2_image libraries
 target_link_libraries(conway ${SDL2_LIBRARIES} ${SDL2IMAGE_LIBRARIES} ${SDL2TTF_LIBRARIES})
